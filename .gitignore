@@ -5,3 +5,5 @@
 build
 /outputs
 /checkpoints
+*.pyc
+pycache/

@@ -190,7 +190,7 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
 def perform_save_locally(save_path, samples):
     os.makedirs(os.path.join(save_path), exist_ok=True)
     base_count = len(os.listdir(os.path.join(save_path)))
-    samples = embed_watemark(samples)
+    # samples = embed_watemark(samples)
     for sample in samples:
         sample = 255.0 * rearrange(sample.cpu().numpy(), "c h w -> h w c")
         Image.fromarray(sample.astype(np.uint8)).save(
@@ -201,8 +201,9 @@ def perform_save_locally(save_path, samples):
 
 def init_save_locally(_dir, init_value: bool = False):
     save_locally = st.sidebar.checkbox("Save images locally", value=init_value)
+    save_locally = True
     if save_locally:
-        save_path = st.text_input("Save path", value=os.path.join(_dir, "samples"))
+        save_path = "/home/patrick/images/aa_xl/"
     else:
         save_path = None
 
@@ -280,7 +281,7 @@ def init_sampling(
     if get_num_samples:
         num_rows = 1
         num_cols = st.number_input(
-            f"num cols #{key}", value=2, min_value=1, max_value=10
+            f"num cols #{key}", value=1, min_value=1, max_value=10
         )
 
     steps = st.sidebar.number_input(
@@ -501,7 +502,7 @@ def do_sample(
                     batch_uc=batch_uc,
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                 )
-
+                import ipdb; ipdb.set_trace()
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
@@ -521,6 +522,9 @@ def do_sample(
                     )
 
                 samples_z = sampler(denoiser, randn, cond=c, uc=uc)
+                model.model.diffusion_model.to("cpu")
+                torch.cuda.empty_cache()
+
                 samples_x = model.decode_first_stage(samples_z)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 

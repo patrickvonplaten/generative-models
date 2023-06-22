@@ -132,6 +132,7 @@ class GeneralConditioner(nn.Module):
         output = dict()
         if force_zero_embeddings is None:
             force_zero_embeddings = []
+
         for embedder in self.embedders:
             embedding_context = nullcontext if embedder.is_trainable else torch.no_grad
             with embedding_context():
@@ -146,6 +147,7 @@ class GeneralConditioner(nn.Module):
             ), f"encoder outputs must be tensors or a sequence, but got {type(emb_out)}"
             if not isinstance(emb_out, (list, tuple)):
                 emb_out = [emb_out]
+            import ipdb; ipdb.set_trace()
             for emb in emb_out:
                 out_key = self.OUTPUT_DIM2KEYS[emb.dim()]
                 if embedder.ucg_rate > 0.0 and embedder.legacy_ucg_val is None:
@@ -168,8 +170,11 @@ class GeneralConditioner(nn.Module):
                     output[out_key] = torch.cat(
                         (output[out_key], emb), self.KEY2CATDIM[out_key]
                     )
+                    print(f"concat {out_key}: ", embedder.__class__)
                 else:
                     output[out_key] = emb
+                    print(f"no concat {out_key}: ", embedder.__class__)
+        import ipdb; ipdb.set_trace()
         return output
 
     def get_unconditional_conditioning(

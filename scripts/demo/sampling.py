@@ -116,6 +116,7 @@ def run_txt2img(
         "target_width": W,
         "target_height": H,
     }
+    prompt = "An astronaut riding a green horse on Mars"
     value_dict = init_embedder_options(
         get_unique_embedder_keys_from_conditioner(state["model"].conditioner),
         init_dict,
@@ -128,7 +129,8 @@ def run_txt2img(
 
     num_samples = num_rows * num_cols
 
-    if st.button("Sample"):
+    # if st.button("Sample"):
+    if True:
         st.write(f"**Model I:** {version}")
         out = do_sample(
             state["model"],
@@ -172,6 +174,7 @@ def run_img2img(
         use_identity_guider=not version_dict["is_guided"],
     )
     num_samples = num_rows * num_cols
+    num_samples = 1
 
     if st.button("Sample"):
         out = do_img2img(
