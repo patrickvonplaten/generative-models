@@ -49,7 +49,7 @@ class DiffusionEngine(pl.LightningModule):
         )
         model = instantiate_from_config(network_config)
         self.model = get_obj_from_str(default(network_wrapper, OPENAIUNETWRAPPER))(
-            model, compile_model=compile_model
+             model, compile_model=compile_model
         )
 
         self.denoiser = instantiate_from_config(denoiser_config)
@@ -59,7 +59,7 @@ class DiffusionEngine(pl.LightningModule):
             else None
         )
         self.conditioner = instantiate_from_config(
-            default(conditioner_config, UNCONDITIONAL_CONFIG)
+             default(conditioner_config, UNCONDITIONAL_CONFIG)
         )
         self.scheduler_config = scheduler_config
         self._init_first_stage(first_stage_config)

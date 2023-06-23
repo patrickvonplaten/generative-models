@@ -134,6 +134,7 @@ class GeneralConditioner(nn.Module):
             force_zero_embeddings = []
 
         for embedder in self.embedders:
+            embedder = embedder.to("cpu")
             embedding_context = nullcontext if embedder.is_trainable else torch.no_grad
             with embedding_context():
                 if hasattr(embedder, "input_key") and (embedder.input_key is not None):
@@ -147,7 +148,6 @@ class GeneralConditioner(nn.Module):
             ), f"encoder outputs must be tensors or a sequence, but got {type(emb_out)}"
             if not isinstance(emb_out, (list, tuple)):
                 emb_out = [emb_out]
-            import ipdb; ipdb.set_trace()
             for emb in emb_out:
                 out_key = self.OUTPUT_DIM2KEYS[emb.dim()]
                 if embedder.ucg_rate > 0.0 and embedder.legacy_ucg_val is None:
@@ -174,7 +174,6 @@ class GeneralConditioner(nn.Module):
                 else:
                     output[out_key] = emb
                     print(f"no concat {out_key}: ", embedder.__class__)
-        import ipdb; ipdb.set_trace()
         return output
 
     def get_unconditional_conditioning(
@@ -186,6 +185,9 @@ class GeneralConditioner(nn.Module):
         for embedder in self.embedders:
             ucg_rates.append(embedder.ucg_rate)
             embedder.ucg_rate = 0.0
+
+        batch_c = {k: v.cpu() if torch.is_tensor(v) else v for k,v in batch_c.items()}
+        batch_uc = {k: v.cpu() if torch.is_tensor(v) else v for k,v in batch_c.items()}
         c = self(batch_c)
         uc = self(batch_c if batch_uc is None else batch_uc, force_uc_zero_embeddings)
 
@@ -241,7 +243,7 @@ class ClassEmbedder(AbstractEmbModel):
             c = c[:, None, :]
         return c
 
-    def get_unconditional_conditioning(self, bs, device="cuda"):
+    def get_unconditional_conditioning(self, bs, device="cpu"):
         uc_class = (
             self.n_classes - 1
         )  # 1000 classes --> 0 ... 999, one extra class for ucg (class 1000)
@@ -353,7 +355,7 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
     def __init__(
         self,
         version="openai/clip-vit-large-patch14",
-        device="cuda",
+        device="cpu",
         max_length=77,
         freeze=True,
         layer="last",
@@ -438,7 +440,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         del model.visual
         self.model = model
 
-        self.device = device
+        self.device = "cpu"
         self.max_length = max_length
         self.return_pooled = always_return_pooled
         if freeze:
@@ -469,6 +471,8 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         return z[self.layer]
 
     def encode_with_transformer(self, text):
+        text = text.to("cpu")
+        self.model.to("cpu")
         x = self.model.token_embedding(text)  # [batch_size, n_ctx, d_model]
         x = x + self.model.positional_embedding
         x = x.permute(1, 0, 2)  # NLD -> LND
@@ -481,6 +485,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
             # x is a dict and will stay a dict
             o = x["last"]
             o = self.model.ln_final(o)
+            import ipdb; ipdb.set_trace()
             pooled = self.pool(o, text)
             x["pooled"] = pooled
             return x

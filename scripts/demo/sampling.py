@@ -246,6 +246,7 @@ if __name__ == "__main__":
     filter = DeepFloydDataFiltering(verbose=False)
 
     seed = st.sidebar.number_input("seed", value=42, min_value=0, max_value=int(1e9))
+    seed = 0
     seed_everything(seed)
 
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, version))

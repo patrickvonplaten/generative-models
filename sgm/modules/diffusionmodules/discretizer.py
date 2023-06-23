@@ -45,6 +45,7 @@ class LegacyDDPMDiscretization(Discretization):
         self.legacy_range = legacy_range
 
     def get_sigmas(self, n, device):
+        device = "cpu"
         if n < self.num_timesteps:
             c = self.num_timesteps // n
 

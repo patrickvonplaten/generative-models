@@ -2,12 +2,15 @@ import os
 from typing import Union, List
 
 import math
+import io
+import pickle
 import numpy as np
 import streamlit as st
 import torch
 from PIL import Image
 from einops import rearrange, repeat
 from imwatermark import WatermarkEncoder
+from pytorch_lightning import seed_everything
 from omegaconf import OmegaConf, ListConfig
 from torch import autocast
 from torchvision import transforms
@@ -118,7 +121,7 @@ def load_model_from_config(config, ckpt=None, verbose=True):
     else:
         msg = None
 
-    model.cuda()
+    # model.cuda()
     model.eval()
     return model, msg
 
@@ -131,6 +134,7 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
     # Hardcoded demo settings; might undergo some changes in the future
 
     value_dict = {}
+    keys = ["txt"]
     for key in keys:
         if key == "txt":
             if prompt is None:
@@ -497,16 +501,30 @@ def do_sample(
                         print(key, [len(l) for l in batch[key]])
                     else:
                         print(key, batch[key])
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
-                import ipdb; ipdb.set_trace()
+                # c, uc = model.conditioner.get_unconditional_conditioning(
+                #     batch,
+                #     batch_uc=batch_uc,
+                #     force_uc_zero_embeddings=force_uc_zero_embeddings,
+                # )
+                class CPU_Unpickler(pickle.Unpickler):
+                    def find_class(self, module, name):
+                        if module == 'torch.storage' and name == '_load_from_bytes':
+                            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+                        else: return super().find_class(module, name)
+                
+                path = '/home/patrick/generative-models/batch.pickle'
+                batch = CPU_Unpickler(open(path,"rb")).load()
+
+                path = '/home/patrick/generative-models/c.pickle'
+                c= CPU_Unpickler(open(path,"rb")).load()
+
+                path = '/home/patrick/generative-models/uc.pickle'
+                uc= CPU_Unpickler(open(path,"rb")).load()
+
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
-                            lambda y: y[k][: math.prod(num_samples)].to("cuda"), (c, uc)
+                            lambda y: y[k][: math.prod(num_samples)].to("cpu"), (c, uc)
                         )
 
                 additional_model_inputs = {}
@@ -514,7 +532,9 @@ def do_sample(
                     additional_model_inputs[k] = batch[k]
 
                 shape = (math.prod(num_samples), C, H // F, W // F)
-                randn = torch.randn(shape).to("cuda")
+                # randn = torch.randn(shape).to("cuda")
+                seed_everything(0)
+                randn = torch.randn(shape)
 
                 def denoiser(input, sigma, c):
                     return model.denoiser(
@@ -541,6 +561,7 @@ def do_sample(
 
 
 def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
+    device = "cpu"
     # Hardcoded demo setups; might undergo some changes in the future
 
     batch = {}
@@ -560,14 +581,16 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
             )
         elif key == "original_size_as_tuple":
             batch["original_size_as_tuple"] = (
-                torch.tensor([value_dict["orig_height"], value_dict["orig_width"]])
+                torch.tensor([128, 128])
+                # torch.tensor([value_dict["orig_height"], value_dict["orig_width"]])
                 .to(device)
                 .repeat(*N, 1)
             )
         elif key == "crop_coords_top_left":
             batch["crop_coords_top_left"] = (
                 torch.tensor(
-                    [value_dict["crop_coords_top"], value_dict["crop_coords_left"]]
+                    [0, 0],
+                    # [value_dict["crop_coords_top"], value_dict["crop_coords_left"]],
                 )
                 .to(device)
                 .repeat(*N, 1)
@@ -584,9 +607,10 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
 
         elif key == "target_size_as_tuple":
             batch["target_size_as_tuple"] = (
-                torch.tensor([value_dict["target_height"], value_dict["target_width"]])
-                .to(device)
-                .repeat(*N, 1)
+                torch.tensor([1024, 1024])
+                # torch.tensor([value_dict["target_height"], value_dict["target_width"]])
+                # .to(device)
+                # .repeat(*N, 1)
             )
         else:
             batch[key] = value_dict[key]

@@ -25,7 +25,9 @@ class Denoiser(nn.Module):
         sigma = append_dims(sigma, input.ndim)
         c_skip, c_out, c_in, c_noise = self.scaling(sigma)
         c_noise = self.possibly_quantize_c_noise(c_noise.reshape(sigma_shape))
-        return network(input * c_in, c_noise, cond) * c_out + input * c_skip
+        # return network(input * c_in, c_noise, cond) * c_out + input * c_skip
+        # import ipdb; ipdb.set_trace()
+        return network(input, c_noise, cond)
 
 
 class DiscreteDenoiser(Denoiser):
@@ -47,6 +49,8 @@ class DiscreteDenoiser(Denoiser):
         self.quantize_c_noise = quantize_c_noise
 
     def sigma_to_idx(self, sigma):
+        sigma = sigma.to("cpu")
+        self.sigmas = self.sigmas.to("cpu")
         dists = sigma - self.sigmas[:, None]
         return dists.abs().argmin(dim=0).view(sigma.shape)
 

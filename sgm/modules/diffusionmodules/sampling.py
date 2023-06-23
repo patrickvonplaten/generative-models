@@ -42,12 +42,14 @@ class BaseDiffusionSampler:
         self.device = device
 
     def prepare_sampling_loop(self, x, cond, uc=None, num_steps=None):
+        self.device = "cpu"
         sigmas = self.discretization(
             self.num_steps if num_steps is None else num_steps, device=self.device
         )
         uc = default(uc, cond)
 
-        x *= torch.sqrt(1.0 + sigmas[0] ** 2.0)
+        # import ipdb; ipdb.set_trace()
+        # x *= torch.sqrt(1.0 + sigmas[0] ** 2.0)
         num_sigmas = len(sigmas)
 
         s_in = x.new_ones([x.shape[0]])
@@ -55,7 +57,8 @@ class BaseDiffusionSampler:
         return x, s_in, sigmas, num_sigmas, cond, uc
 
     def denoise(self, x, denoiser, sigma, cond, uc):
-        denoised = denoiser(*self.guider.prepare_inputs(x, sigma, cond, uc))
+        inputs = self.guider.prepare_inputs(x, sigma, cond, uc)
+        denoised = denoiser(*inputs)
         denoised = self.guider(denoised, sigma)
         return denoised
 

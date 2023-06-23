@@ -33,49 +33,50 @@ model:
         use_linear_in_transformer: True
         transformer_depth: [1, 2, 10]  # note: the first is unused (due to attn_res starting at 2) 32, 16, 8 --> 64, 32, 16
         context_dim: 2048
-        spatial_transformer_attn_type: softmax-xformers
+        # spatial_transformer_attn_type: softmax-xformers
+        spatial_transformer_attn_type: softmax
         legacy: False
 
-    conditioner_config:
-      target: sgm.modules.GeneralConditioner
-      params:
-        emb_models:
-          # crossattn cond
-          - is_trainable: False
-            input_key: txt
-            target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
-            params:
-              layer: hidden
-              layer_idx: 11
-          # crossattn and vector cond
-          - is_trainable: False
-            input_key: txt
-            target: sgm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
-            params:
-              arch: ViT-bigG-14
-              version: laion2b_s39b_b160k
-              freeze: True
-              layer: penultimate
-              always_return_pooled: True
-              legacy: False
-          # vector cond
-          - is_trainable: False
-            input_key: original_size_as_tuple
-            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
-            params:
-              outdim: 256  # multiplied by two
-          # vector cond
-          - is_trainable: False
-            input_key: crop_coords_top_left
-            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
-            params:
-              outdim: 256  # multiplied by two
-          # vector cond
-          - is_trainable: False
-            input_key: target_size_as_tuple
-            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
-            params:
-              outdim: 256  # multiplied by two
+    # conditioner_config:
+    #   target: sgm.modules.GeneralConditioner
+    #   params:
+    #     emb_models:
+    #       # crossattn cond
+    #       - is_trainable: False
+    #         input_key: txt
+    #         target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
+    #         params:
+    #           layer: hidden
+    #           layer_idx: 11
+    #       # crossattn and vector cond
+    #       - is_trainable: False
+    #         input_key: txt
+    #         target: sgm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
+    #         params:
+    #           arch: ViT-bigG-14
+    #           version: laion2b_s39b_b160k
+    #           freeze: True
+    #           layer: penultimate
+    #           always_return_pooled: True
+    #           legacy: False
+    #       # vector cond
+    #       - is_trainable: False
+    #         input_key: original_size_as_tuple
+    #         target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+    #         params:
+    #           outdim: 256  # multiplied by two
+    #       # vector cond
+    #       - is_trainable: False
+    #         input_key: crop_coords_top_left
+    #         target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+    #         params:
+    #           outdim: 256  # multiplied by two
+    #       # vector cond
+    #       - is_trainable: False
+    #         input_key: target_size_as_tuple
+    #         target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+    #         params:
+    #           outdim: 256  # multiplied by two
 
     first_stage_config:
       target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper

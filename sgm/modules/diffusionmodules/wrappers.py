@@ -25,10 +25,15 @@ class OpenAIWrapper(IdentityWrapper):
         self, x: torch.Tensor, t: torch.Tensor, c: dict, **kwargs
     ) -> torch.Tensor:
         x = torch.cat((x, c.get("concat", torch.Tensor([]).type_as(x))), dim=1)
-        return self.diffusion_model(
+        self.diffusion_model.to("cpu")
+        vector = c.get("vector", None).to("cpu")
+        context=c.get("crossattn", None)
+        result = self.diffusion_model(
             x,
             timesteps=t,
-            context=c.get("crossattn", None),
-            y=c.get("vector", None),
+            context=context,
+            y=vector,
             **kwargs
         )
+        import ipdb; ipdb.set_trace()
+        return result
